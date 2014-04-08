@@ -1,0 +1,24 @@
+*heroku.txt*  Heroku toolbelt and hk wrapper
+
+Author:  Tim Pope <http://tpo.pe/>
+Repo:    https://github.com/tpope/vim-heroku
+License: Same terms as Vim itself (see |license|)
+
+USAGE                                           *heroku* *:Hk*
+
+:Hk [args]              Run hk or heroku with the given [args] using
+			|:Dispatch| (or |:make| if unavailable).  If both
+			commands are installed, hk is used for known hk
+			commands and plugins, and heroku is used for
+			everything else.  Tab completion is for hk only.
+
+:Hk run [args]		Identical to :Hk above, but uses |:Start| (or |:!| if
+			unavailable).
+
+When editing a file in a Git repository, every Heroku remote from that
+repository is camel cased and turned into a :Hk command wrapper that passes
+the appropriate app argument.  For example, if you have a remote named staging
+pointed at git@heroku.com:myapp-staging.git, calling :Staging restart is
+equivalent to calling :Hk restart -a myapp-staging.
+
+ vim:tw=78:et:ft=help:norl:
