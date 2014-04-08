@@ -146,6 +146,10 @@ function! Heroku_service_list(...) abort
   return s:hk_system('addon-services')
 endfunction
 
+function! Heroku_topic_list(...) abort
+  return sort(filter(keys(s:hk_commands()) + s:hk_plugins(), 'v:val !=# "default"'))
+endfunction
+
 function! Heroku_version_list(app, ...) abort
   if !empty(a:app)
     return map(s:hk_system('releases -a '.a:app), 'matchstr(v:val, "^\\S\\+")')
@@ -183,7 +187,7 @@ function! s:Complete(A, L, P) abort
   if !empty(cmd)
     return s:completion_filter(filter(s:complete_usage(cmd, a:A, a:L, a:P), 'v:val !=# "-a"'), a:A)
   endif
-  return s:completion_filter(sort(filter(keys(s:hk_commands()) + s:hk_plugins(), 'v:val !=# "default"')), a:A)
+  return s:completion_filter(Heroku_topic_list(), a:A)
 endfunction
 
 function! s:GlobalComplete(A, L, P) abort
@@ -192,7 +196,7 @@ function! s:GlobalComplete(A, L, P) abort
   if !empty(cmd)
     return s:completion_filter(s:complete_usage(cmd, a:A, a:L, a:P), a:A)
   endif
-  return s:completion_filter(sort(filter(keys(s:hk_commands()) + s:hk_plugins(), 'v:val !=# "default"')), a:A)
+  return s:completion_filter(Heroku_topic_list(), a:A)
 endfunction
 
 function! s:Detect(git_dir) abort
