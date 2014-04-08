@@ -110,18 +110,20 @@ function! s:usage(command) abort
   return s:usage[a:command]
 endfunction
 
-function! Heroku_app_list(...) abort
+let s:completers = {}
+
+function! s:completers.app(...) abort
   return map(s:hk_system('apps'), 'matchstr(v:val, "^\\S*")')
 endfunction
 
-function! Heroku_dbname_list(app, ...) abort
+function! s:completers.dbname(app, ...) abort
   if !empty(a:app)
     return map(s:hk_system('pg-list -a '.a:app), 'matchstr(v:val, "\\w\\S*")')
   endif
   return []
 endfunction
 
-function! Heroku_feature_list(app, cmd) abort
+function! s:completers.feature(app, cmd) abort
   if a:cmd =~# '^account'
     return map(s:hk_system('account-features'), 'matchstr(v:val, "\\w\\S*")')
   elseif !empty(a:app)
@@ -130,27 +132,27 @@ function! Heroku_feature_list(app, cmd) abort
   return []
 endfunction
 
-function! Heroku_name_list(app, cmd) abort
+function! s:completers.name(app, cmd) abort
   if a:cmd !~# '[gs]et'
-    return Heroku_app_list()
+    return s:completers.app()
   elseif !empty(a:app)
     return map(s:hk_system('releases -a '.a:app), 'matchstr(v:val, "^\\S\\+")')
   endif
 endfunction
 
-function! Heroku_region_list(...) abort
+function! s:completers.region(...) abort
   return map(s:hk_system('regions'), 'matchstr(v:val, "^\\S*")')
 endfunction
 
-function! Heroku_service_list(...) abort
+function! s:completers.service(...) abort
   return s:hk_system('addon-services')
 endfunction
 
-function! Heroku_topic_list(...) abort
+function! s:completers.topic(...) abort
   return sort(filter(keys(s:hk_commands()) + s:hk_plugins(), 'v:val !=# "default"'))
 endfunction
 
-function! Heroku_version_list(app, ...) abort
+function! s:completers.version(app, ...) abort
   if !empty(a:app)
     return map(s:hk_system('releases -a '.a:app), 'matchstr(v:val, "^\\S\\+")')
   endif
@@ -160,16 +162,16 @@ function! s:complete_usage(cmd, A, L, P) abort
   let usage = s:usage(a:cmd)
   let opt = matchstr(strpart(a:L, 0, a:P), ' \zs-[a-z]\ze \+\S*$')
   let type = matchstr(usage, '\['.opt.' <\zs[^<>]*\ze>')
-  if exists('*Heroku_'.type.'_list')
-    return Heroku_{type}_list(s:complete_app, a:cmd)
+  if has_key(s:completers, type)
+    return s:completers[type](s:complete_app, a:cmd)
   elseif !empty(type)
     return []
   endif
   let options = split(substitute(usage, '<[^<>]*>\|[][.:]', '', 'g'), '\s\+')
   let args = split(substitute(usage, '\[-[^[]*\]\|[][.]', '', 'g'), '[[:space:]:]\+')
   let g:args = args
-  if exists('*Heroku_'.get(args, 0, '')[1:-2].'_list')
-    return Heroku_{args[0][1:-2]}_list(s:complete_app, a:cmd) + options
+  if has_key(s:completers, get(args, 0, '')[1:-2])
+    return s:completers[args[0][1:-2]](s:complete_app, a:cmd) + options
   endif
   return options
 endfunction
@@ -187,7 +189,7 @@ function! s:Complete(A, L, P) abort
   if !empty(cmd)
     return s:completion_filter(filter(s:complete_usage(cmd, a:A, a:L, a:P), 'v:val !=# "-a"'), a:A)
   endif
-  return s:completion_filter(Heroku_topic_list(), a:A)
+  return s:completion_filter(s:completers.topic(), a:A)
 endfunction
 
 function! s:GlobalComplete(A, L, P) abort
@@ -196,7 +198,7 @@ function! s:GlobalComplete(A, L, P) abort
   if !empty(cmd)
     return s:completion_filter(s:complete_usage(cmd, a:A, a:L, a:P), a:A)
   endif
-  return s:completion_filter(Heroku_topic_list(), a:A)
+  return s:completion_filter(s:completers.topic(), a:A)
 endfunction
 
 function! s:Detect(git_dir) abort
