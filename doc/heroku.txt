@@ -21,4 +21,6 @@ the appropriate app argument.  For example, if you have a remote named staging
 pointed at git@heroku.com:myapp-staging.git, calling :Staging restart is
 equivalent to calling :Hk restart -a myapp-staging.
 
+Also included is basic projectile.vim support for heroku plugins.
+
  vim:tw=78:et:ft=help:norl:
