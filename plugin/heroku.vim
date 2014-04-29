@@ -222,10 +222,11 @@ function! s:Detect(git_dir) abort
   endfor
 endfunction
 
-function! s:ProjectileDetect() abort
+function! s:ProjectionistDetect() abort
   let root = expand('~/.heroku/plugins/')
-  if strpart(g:projectile_file, 0, len(root)) ==# root
-    call projectile#append(root . matchstr(g:projectile_file, '[^/]\+', len(root)), {
+  let file = get(g:, 'projectionist_file', get(b:, 'projectionist_file', ''))
+  if strpart(file, 0, len(root)) ==# root
+    call projectionist#append(root . matchstr(file, '[^/]\+', len(root)), {
           \ "lib/heroku/command/*.rb": {"command": "command", "template": [
           \   "#",
           \   "class Heroku::Command::{capitalize|camelcase} < Heroku::Command::Base",
@@ -248,7 +249,7 @@ augroup heroku
         \   call s:Detect(finddir('.git', '.;')) |
         \ endif
   autocmd User Fugitive call s:Detect(b:git_dir)
-  autocmd User ProjectileDetect call s:ProjectileDetect()
+  autocmd User ProjectionistDetect call s:ProjectionistDetect()
 augroup END
 
 command! -bar -bang -nargs=? -complete=custom,s:GlobalComplete
