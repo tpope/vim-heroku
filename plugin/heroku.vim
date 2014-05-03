@@ -33,7 +33,7 @@ function! s:prepare(args, app) abort
   let args = a:args
   let command = matchstr(args, '\a\S*')
   if !empty(command) && args !~# '^\a\S*\s\+-a' && !empty(a:app)
-        \ && s:usage(command) =~# '-a <app>'
+        \ && s:usage(command) =~# '-a <app'
     let args = substitute(args, '\S\@<=\S\@!', ' -a '.a:app, '')
   endif
   if executable('hk')
@@ -115,6 +115,8 @@ let s:completers = {}
 function! s:completers.app(...) abort
   return map(s:hk_system('apps'), 'matchstr(v:val, "^\\S*")')
 endfunction
+
+let s:completers['app or remote'] = s:completers.app
 
 function! s:completers.dbname(app, ...) abort
   if !empty(a:app)
