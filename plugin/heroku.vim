@@ -68,7 +68,7 @@ function! s:dispatch(dir, app, bang, args) abort
       let b:current_compiler = 'heroku'
       let &l:efm = '%+G%.%#'
       execute cd fnameescape(a:dir)
-      execute (exists(':Make') == 2 ? 'Make' : 'make').a:bang
+      execute (exists(':Make') == 2 ? 'Make'.a:bang : 'make!')
     endif
   finally
     let [&l:mp, &l:efm, b:current_compiler] = [mp, efm, cc]
