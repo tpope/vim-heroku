@@ -54,7 +54,7 @@ function! s:dispatch(dir, app, bang, args) abort
   let cwd = getcwd()
   let [mp, efm, cc] = [&l:mp, &l:efm, get(b:, 'current_compiler', '')]
   try
-    let &mp = s:prepare(a:args, a:app)
+    let &l:mp = s:prepare(a:args, a:app)
     if a:args =~# '^\s*\%(run\|console\)\>:\@!' && substitute(a:args, '-- .*', '', '') !~# ' -d\>'
       execute cd '~'
       let title = empty(a:app) ? 'heroku' : a:app
