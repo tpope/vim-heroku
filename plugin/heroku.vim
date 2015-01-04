@@ -55,8 +55,12 @@ function! s:dispatch(dir, app, bang, args) abort
   let [mp, efm, cc] = [&l:mp, &l:efm, get(b:, 'current_compiler', '')]
   try
     let &l:mp = s:prepare(a:args, a:app)
-    if a:args =~# '^\s*\%(run\|console\|psql\)\>:\@!' && substitute(a:args, '-- .*', '', '') !~# ' -d\>'
-      execute cd '~'
+    if a:args =~# '^\s*\%(run\s\+console\|console\|psql\)\>:\@!' && substitute(a:args, '-- .*', '', '') !~# ' -d\>'
+      if empty(a:app)
+        execute cd fnameescape(a:dir)
+      else
+        execute cd '~'
+      endif
       let title = empty(a:app) ? 'heroku' : a:app
       let title .= ' '.matchstr(a:args, '^\s*\%(run\s\+\)\=\%(-a\s\+\S\+\s\+\)\=\zs\S\+')
       if exists(':Start')
