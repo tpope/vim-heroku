@@ -196,16 +196,11 @@ function! s:Complete(A, L, P) abort
   endif
   let cmd = matchstr(strpart(a:L, 0, a:P), '[! ]\zs\(\S\+\)\ze\s\+')
   if !empty(cmd)
-    return s:completion_filter(filter(s:complete_usage(cmd, a:A, a:L, a:P), 'v:val !=# "-a"'), a:A)
-  endif
-  return s:completion_filter(s:completers.topic(), a:A)
-endfunction
-
-function! s:GlobalComplete(A, L, P) abort
-  let s:complete_app = s:extract_app(a:L)
-  let cmd = matchstr(strpart(a:L, 0, a:P), '[! ]\zs\(\S\+\)\ze\s\+')
-  if !empty(cmd)
-    return s:completion_filter(s:complete_usage(cmd, a:A, a:L, a:P), a:A)
+    let results = s:complete_usage(cmd, a:A, a:L, a:P)
+    if !empty(s:complete_app)
+      call filter(results, 'v:val !=# "-a"')
+    endif
+    return s:completion_filter(results, a:A)
   endif
   return s:completion_filter(s:completers.topic(), a:A)
 endfunction
@@ -262,8 +257,8 @@ augroup heroku
   autocmd User ProjectionistDetect call s:ProjectionistDetect()
 augroup END
 
-command! -bar -bang -nargs=? -complete=custom,s:GlobalComplete
+command! -bar -bang -nargs=? -complete=custom,s:Complete
       \ Hk     call s:dispatch(getcwd(), '', '<bang>', <q-args>)
 
-command! -bar -bang -nargs=? -complete=custom,s:GlobalComplete
+command! -bar -bang -nargs=? -complete=custom,s:Complete
       \ Heroku call s:dispatch(getcwd(), '', '<bang>', <q-args>)
