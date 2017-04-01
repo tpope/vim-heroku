@@ -175,7 +175,6 @@ function! s:complete_usage(cmd, A, L, P) abort
   endif
   let options = split(substitute(usage, '<[^<>]*>\|[][.:]', '', 'g'), '\s\+')
   let args = split(substitute(usage, '\[-[^[]*\]\|[][.]', '', 'g'), '[[:space:]:]\+')
-  let g:args = args
   if has_key(s:completers, get(args, 0, '')[1:-2])
     return s:completers[args[0][1:-2]](s:complete_app, a:cmd) + options
   endif
