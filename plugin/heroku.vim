@@ -232,6 +232,7 @@ function! s:ProjectionistDetect() abort
   let file = get(g:, 'projectionist_file', get(b:, 'projectionist_file', ''))
   if strpart(file, 0, len(root)) ==# root
     call projectionist#append(root . matchstr(file, '[^/]\+', len(root)), {
+          \ "*": {"path": ["lib"]},
           \ "lib/heroku/command/*.rb": {"command": "command", "template": [
           \   "#",
           \   "class Heroku::Command::{capitalize|camelcase} < Heroku::Command::Base",
