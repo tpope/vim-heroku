@@ -70,7 +70,7 @@ function! s:dispatch(dir, app, bang, args) abort
       endif
     else
       let b:current_compiler = 'heroku'
-      let &l:efm = '%+I%.%#'
+      let &l:efm = '%-G%\e[?25h,%+I%.%#'
       execute cd fnameescape(a:dir)
       execute (exists(':Make') == 2 ? 'Make'.a:bang : 'make!')
     endif
