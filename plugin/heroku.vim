@@ -29,10 +29,14 @@ function! s:hk_system(args) abort
   endif
 endfunction
 
+function! s:extract_app(args) abort
+  return matchstr(substitute(a:args, ' -- .*', '', ''), ' -a \zs\S\+')
+endfunction
+
 function! s:prepare(args, app) abort
   let args = a:args
   let command = matchstr(args, '\a\S*')
-  if !empty(command) && args !~# '^\a\S*\s\+-a' && !empty(a:app)
+  if !empty(command) && empty(s:extract_app(args)) && !empty(a:app)
         \ && s:usage(command) =~# '-a <app'
     let args = substitute(args, '\S\@<=\S\@!', ' -a '.a:app, '')
   endif
@@ -186,7 +190,7 @@ function! s:completion_filter(results, A) abort
 endfunction
 
 function! s:Complete(A, L, P) abort
-  let s:complete_app = matchstr(a:L, ' -a \zs\S\+')
+  let s:complete_app = s:extract_app(a:L)
   if empty(s:complete_app)
     silent! execute matchstr(a:L, '\u\a*') '&'
   endif
@@ -198,7 +202,7 @@ function! s:Complete(A, L, P) abort
 endfunction
 
 function! s:GlobalComplete(A, L, P) abort
-  let s:complete_app = matchstr(a:L, ' -a \zs\S\+')
+  let s:complete_app = s:extract_app(a:L)
   let cmd = matchstr(strpart(a:L, 0, a:P), '[! ]\zs\(\S\+\)\ze\s\+')
   if !empty(cmd)
     return s:completion_filter(s:complete_usage(cmd, a:A, a:L, a:P), a:A)
