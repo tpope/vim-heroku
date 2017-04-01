@@ -215,7 +215,7 @@ function! s:Detect(git_dir) abort
       if !empty(remote)
         let alias = remote
       endif
-      let app = matchstr(line, '^\s*url\s*=.*heroku.com:\zs.*\ze\.git\s*$')
+      let app = matchstr(line, '^\s*url\s*=.*heroku.com[:/]\zs.*\ze\.git\s*$')
       if !empty(app)
         let remotes[alias] = app
       endif
