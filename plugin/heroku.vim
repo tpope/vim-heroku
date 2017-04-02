@@ -49,7 +49,7 @@ function! s:prepare(args, app) abort
         \ (get(command, 'needsApp') || get(command, 'wantsApp', 1))
     let args = substitute(args, '\S\@<=\S\@!', ' -a '.a:app, '')
   endif
-  return 'heroku ' . args
+  return args
 endfunction
 
 function! s:dispatch(dir, app, bang, args) abort
@@ -62,7 +62,7 @@ function! s:dispatch(dir, app, bang, args) abort
   let cwd = getcwd()
   let [mp, efm, cc] = [&l:mp, &l:efm, get(b:, 'current_compiler', '')]
   try
-    let &l:mp = s:prepare(a:args, a:app)
+    let args = s:prepare(a:args, a:app)
     if a:args =~# '^\s*\%(run\s\+console\|console\|psql\)\>:\@!' && substitute(a:args, '-- .*', '', '') !~# ' -d\>'
       if empty(a:app)
         execute cd fnameescape(a:dir)
@@ -72,15 +72,14 @@ function! s:dispatch(dir, app, bang, args) abort
       let title = empty(a:app) ? 'heroku' : a:app
       let title .= ' '.matchstr(a:args, '^\s*\%(run\s\+\)\=\%(-a\s\+\S\+\s\+\)\=\zs\S\+')
       if exists(':Start')
-        execute 'Start'.a:bang '-title='.escape(title, ' ') &mp
+        execute 'Start'.a:bang '-title='.escape(title, ' ') 'heroku' args
       else
-        execute '!'.&mp
+        execute '!heroku' args
       endif
     else
-      let b:current_compiler = 'heroku'
-      let &l:efm = '%-G%\e[?25h,%+I%.%#'
+      compiler heroku
       execute cd fnameescape(a:dir)
-      execute (exists(':Make') == 2 ? 'Make'.a:bang : 'make!')
+      execute (exists(':Make') == 2 ? 'Make'.a:bang : 'make!') args
     endif
   finally
     let [&l:mp, &l:efm, b:current_compiler] = [mp, efm, cc]
@@ -219,13 +218,16 @@ function! s:completion_filter(results, A) abort
 endfunction
 
 function! s:Complete(A, L, P) abort
-  let s:complete_app = s:extract_app(a:L)
-  if empty(s:complete_app)
-    silent! execute matchstr(a:L, '\u\a*') '&'
-  endif
+  silent! execute matchstr(a:L, '\u\a*') '&'
+  return CompilerComplete_heroku(a:A, a:L, a:P, s:complete_app)
+endfunction
+
+function! CompilerComplete_heroku(A, L, P, ...) abort
+  let app = s:extract_app(a:L)
+  let app = len(app) ? app : (a:0 ? a:1 : '')
   let cmd = matchstr(strpart(a:L, 0, a:P), '[! ]\zs\(\S\+\)\ze\s\+')
   if !empty(cmd) && cmd !=# 'help'
-    let results = s:complete_command(cmd, s:complete_app, a:A, a:L, a:P)
+    let results = s:complete_command(cmd, app, a:A, a:L, a:P)
     if !empty(s:complete_app)
       call filter(results, 'v:val !~# "^-\\%([ar]\\|-app\\|-remote\\)$"')
     endif
@@ -286,8 +288,8 @@ augroup heroku
   autocmd User ProjectionistDetect call s:ProjectionistDetect()
 augroup END
 
-command! -bar -bang -nargs=? -complete=custom,s:Complete
+command! -bar -bang -nargs=? -complete=custom,CompilerComplete_heroku
       \ Hk     call s:dispatch(getcwd(), '', '<bang>', <q-args>)
 
-command! -bar -bang -nargs=? -complete=custom,s:Complete
+command! -bar -bang -nargs=? -complete=custom,CompilerComplete_heroku
       \ Heroku call s:dispatch(getcwd(), '', '<bang>', <q-args>)
