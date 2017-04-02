@@ -7,43 +7,47 @@ if exists("g:loaded_heroku") || v:version < 700 || &cp
 endif
 let g:loaded_heroku = 1
 
-function! s:hk_plugins() abort
-  let env = empty($HKPATH) ? '/usr/local/lib/hk/plugin' : $HKPATH
-  let path = escape(join(split(env, has('win32') ? ';' : ':'), ','), ' ')
-  return map(filter(split(globpath(path, '*')), 'executable(v:val)'), 'fnamemodify(v:val, ":t")')
-endfunction
-
-function! s:hk_has_plugin(plugin) abort
-  return index(s:hk_plugins(), a:plugin) >= 0
-endfunction
-
-function! s:hk_system(args) abort
-  if !executable('hk')
-    return []
+function! s:heroku_json(args, default) abort
+  if !executable('heroku')
+    return default
   endif
-  let output = system('hk '.a:args)
+  let output = system('heroku '.a:args.' --json')
   if v:shell_error
     throw substitute(output, "\n$", '', '')
-  else
-    return split(output, "\n")
+  elseif exists('*json_decode')
+    return json_decode(output)
   endif
+  let [null, false, true] = ['', 0, 1]
+  let stripped = substitute(string,'\C"\(\\.\|[^"\\]\)*"','','g')
+  if stripped !~# "[^,:{}\\[\\]0-9.\\-+Eaeflnr-u \n\r\t]"
+    try
+      return eval(substitute(string,"[\r\n]"," ",'g'))
+    catch
+    endtry
+  endif
+  throw "invalid JSON: ".string
 endfunction
 
 function! s:extract_app(args) abort
-  return matchstr(substitute(a:args, ' -- .*', '', ''), ' -a \zs\S\+')
+  let args = substitute(a:args, ' -- .*', '', '')
+  let app = matchstr(args, '\s-\%(a\s*\|-app[= ]\s*\)\zs\S\+')
+  if !empty(app)
+    return app
+  endif
+  let remote = matchstr(args, '\s-\%(r\s*\|-remote[= ]\s*\)\zs\S\+')
+  if has_key(get(b:, 'heroku_remotes', {}), remote)
+    return b:heroku_remotes[remote]
+  endif
+  return ''
 endfunction
 
 function! s:prepare(args, app) abort
   let args = a:args
-  let command = matchstr(args, '\a\S*')
-  if !empty(command) && empty(s:extract_app(args)) && !empty(a:app)
-        \ && s:usage(command) =~# '-a <app'
+  let name = matchstr(args, '\a\S*')
+  let command = s:command(name)
+  if !empty(name) && empty(s:extract_app(args)) &&
+        \ (get(command, 'needsApp') || get(command, 'wantsApp', 1))
     let args = substitute(args, '\S\@<=\S\@!', ' -a '.a:app, '')
-  endif
-  if executable('hk')
-    if empty(command) || has_key(s:hk_commands(), command) || s:hk_has_plugin(command) || s:hk_has_plugin('default')
-      return 'hk ' . args
-    endif
   endif
   return 'heroku ' . args
 endfunction
@@ -85,104 +89,129 @@ function! s:dispatch(dir, app, bang, args) abort
   endtry
 endfunction
 
-unlet! s:hk_commands
-function! s:hk_commands() abort
-  if !exists('s:hk_commands')
-    let s:hk_commands = {}
-    for line in s:hk_system('help commands')
-      let command = matchstr(line, '^hk \zs\S\+')
-      if !empty(command)
-        let s:hk_commands[command] = matchstr(line, '^hk \S\+ \zs.\{-\}\ze\s*#')
+unlet! s:commands
+function! s:commands() abort
+  if !exists('s:commands')
+    let s:commands = {}
+    for command in s:heroku_json('commands', {'commands': []}).commands
+      let name = substitute(get(command, 'topic', '').':'.get(command, 'command', ''), ':$', '', '')
+      if !empty(name)
+        let s:commands[name] = command
       endif
     endfor
-    lockvar s:hk_commands
+    lockvar s:commands
   endif
-  return s:hk_commands
+  return s:commands
 endfunction
 
-let s:usage = {}
-function! s:usage(command) abort
-  if empty(a:command)
-    return ''
-  elseif a:command ==# 'run'
-    return '[-a <app>] ' . get(s:hk_commands(), 'run', '[-s <size>] [-d] <command> [<argument>...]')
-  elseif has_key(s:hk_commands(), a:command)
-    return s:hk_commands[a:command]
+function! s:command(name, ...) abort
+  let command = empty(a:name) ? {} : get(s:commands(), a:name, {})
+  if a:0
+    return get(command, a:1, a:0 > 1 ? a:2 : '')
+  else
+    return command
   endif
-  if !has_key(s:usage, a:command)
-    let usage = matchstr(
-          \ system('hk help '.a:command),
-          \ 'Usage:\s*\S\+ \+[[:alnum:]:-]\+ \+\zs'."[^\n]*")
-    let s:usage[a:command] = empty(usage) ? '[-a <app>]' : usage
-  endif
-  return s:usage[a:command]
 endfunction
 
 let s:completers = {}
+let s:app_completers = {}
 
 function! s:completers.app(...) abort
-  return map(s:hk_system('apps'), 'matchstr(v:val, "^\\S*")')
+  return map(s:heroku_json('apps -A', []), 'v:val.name')
+endfunction
+let s:completers.confirm = s:completers.app
+
+function! s:completers.org(...) abort
+  return map(s:heroku_json('teams', []), 'v:val.name')
 endfunction
 
-let s:completers['app or remote'] = s:completers.app
-
-function! s:completers.dbname(app, ...) abort
-  if !empty(a:app)
-    return map(s:hk_system('pg-list -a '.a:app), 'matchstr(v:val, "\\w\\S*")')
-  endif
-  return []
-endfunction
-
-function! s:completers.feature(app, cmd) abort
-  if a:cmd =~# '^account'
-    return map(s:hk_system('account-features'), 'matchstr(v:val, "\\w\\S*")')
-  elseif !empty(a:app)
-    return map(s:hk_system('features -a '.a:app), 'matchstr(v:val, "\\w\\S*")')
-  endif
-  return []
-endfunction
-
-function! s:completers.name(app, cmd) abort
-  if a:cmd !~# '[gs]et'
-    return s:completers.app()
-  elseif !empty(a:app)
-    return map(s:hk_system('releases -a '.a:app), 'matchstr(v:val, "^\\S\\+")')
-  endif
+function! s:completers.plan(arg, ...) abort
+  return map(s:heroku_json('addons:plans '.matchstr(a:arg, '.*\ze:'), []), 'v:val.name')
 endfunction
 
 function! s:completers.region(...) abort
-  return map(s:hk_system('regions'), 'matchstr(v:val, "^\\S*")')
+  return map(s:heroku_json('regions', []), 'v:val.name')
+endfunction
+
+function! s:app_completers.release(app, ...) abort
+  return map(s:heroku_json('releases -a '.a:app, []), '"v".v:val.version')
+endfunction
+
+function! s:completers.remote(...) abort
+  return keys(get(b:, 'heroku_remotes', {}))
 endfunction
 
 function! s:completers.service(...) abort
-  return s:hk_system('addon-services')
+  return map(s:heroku_json('addons:services', []), 'v:val.name')
+endfunction
+
+function! s:completers.space(...) abort
+  return map(s:heroku_json('spaces', []), 'v:val.name')
 endfunction
 
 function! s:completers.topic(...) abort
-  return sort(filter(keys(s:hk_commands()) + s:hk_plugins(), 'v:val !=# "default"'))
+  return sort(keys(s:commands()))
 endfunction
 
-function! s:completers.version(app, ...) abort
-  if !empty(a:app)
-    return map(s:hk_system('releases -a '.a:app), 'matchstr(v:val, "^\\S\\+")')
+function! s:app_completers.addon(app, ...) abort
+  return map(s:heroku_json('addons -a '.a:app, []), 'v:val.name')
+endfunction
+
+function! s:completers.addon(...) abort
+  return map(s:heroku_json('addons --all', []), 'v:val.name')
+endfunction
+
+function! s:completion_for(type, app, arg) abort
+  let type = a:type
+  if type =~ ':'
+    let type = matchstr(type, '[^:]\+' . (a:arg =~ ':' ? '$' : ''))
   endif
-endfunction
-
-function! s:complete_usage(cmd, A, L, P) abort
-  let usage = s:usage(a:cmd)
-  let opt = matchstr(strpart(a:L, 0, a:P), ' \zs-[a-z]\ze \+\S*$')
-  let type = matchstr(usage, '\['.opt.' <\zs[^<>]*\ze>')
-  if has_key(s:completers, type)
-    return s:completers[type](s:complete_app, a:cmd)
-  elseif !empty(type)
+  if !empty(a:app) && has_key(s:app_completers, type)
+    return s:app_completers[type](a:app, a:arg)
+  elseif has_key(s:completers, type)
+    return s:completers[type](a:arg)
+  else
     return []
   endif
-  let options = split(substitute(usage, '<[^<>]*>\|[][.:]', '', 'g'), '\s\+')
-  let args = split(substitute(usage, '\[-[^[]*\]\|[][.]', '', 'g'), '[[:space:]:]\+')
-  if has_key(s:completers, get(args, 0, '')[1:-2])
-    return s:completers[args[0][1:-2]](s:complete_app, a:cmd) + options
+endfunction
+
+function! s:complete_command(cmd, app, A, L, P) abort
+  let opt = matchstr(strpart(a:L, 0, a:P), ' \zs\%(-[a-z]\|--[[:alnum:]-]+[ =]\@=\)\ze\%(=\|\s*\)\S*$')
+  let command = s:command(a:cmd)
+  if empty(command)
+    return []
   endif
-  return options
+  let flags = {}
+  if type(get(command, 'flags')) ==# type([])
+    for flag in command.flags
+      let desc = flag.hasValue ? flag.name : ''
+      if !empty(flag.char)
+        let flags['-'.flag.char] = desc
+      endif
+      if !empty(flag.name)
+        let flags['--'.flag.name] = desc
+      endif
+    endfor
+    if command.needsApp || command.wantsApp
+      let flags['-a'] = 'app'
+      let flags['--app'] = 'app'
+      let flags['-r'] = 'remote'
+      let flags['--remote'] = 'remote'
+    endif
+  endif
+  if !empty(get(flags, opt))
+    return s:completion_for(flags[opt], a:app, a:A)
+  endif
+  let options = []
+  if type(get(command, 'args')) ==# type([])
+    let args = map(copy(command.args), 'v:val.name')
+  else
+    let args = split(tr(command.usage, '[]A-Z', '  a-z', 'g'), '\s\+')[1:-1]
+  endif
+  for arg in args
+    let options += s:completion_for(arg, a:app, a:A)
+  endfor
+  return options + sort(keys(flags))
 endfunction
 
 function! s:completion_filter(results, A) abort
@@ -195,10 +224,10 @@ function! s:Complete(A, L, P) abort
     silent! execute matchstr(a:L, '\u\a*') '&'
   endif
   let cmd = matchstr(strpart(a:L, 0, a:P), '[! ]\zs\(\S\+\)\ze\s\+')
-  if !empty(cmd)
-    let results = s:complete_usage(cmd, a:A, a:L, a:P)
+  if !empty(cmd) && cmd !=# 'help'
+    let results = s:complete_command(cmd, s:complete_app, a:A, a:L, a:P)
     if !empty(s:complete_app)
-      call filter(results, 'v:val !=# "-a"')
+      call filter(results, 'v:val !~# "^-\\%([ar]\\|-app\\|-remote\\)$"')
     endif
     return s:completion_filter(results, a:A)
   endif
@@ -206,7 +235,7 @@ function! s:Complete(A, L, P) abort
 endfunction
 
 function! s:Detect(git_dir) abort
-  let remotes = {}
+  let b:heroku_remotes = {}
   if filereadable(a:git_dir.'/config')
     for line in readfile(a:git_dir.'/config')
       let remote = matchstr(line, '^\s*\[\s*remote\s\+"\zs.*\ze"\s*\]\s*$')
@@ -215,11 +244,11 @@ function! s:Detect(git_dir) abort
       endif
       let app = matchstr(line, '^\s*url\s*=.*heroku.com[:/]\zs.*\ze\.git\s*$')
       if !empty(app)
-        let remotes[alias] = app
+        let b:heroku_remotes[alias] = app
       endif
     endfor
   endif
-  for [remote, app] in items(remotes)
+  for [remote, app] in items(b:heroku_remotes)
     let command = substitute(remote, '\%(^\|[-_]\+\)\(\w\)', '\u\1', 'g')
     execute 'command! -bar -bang -buffer -nargs=? -complete=custom,s:Complete' command
           \ 'call s:dispatch(' . string(fnamemodify(a:git_dir, ':h')) . ', ' . string(app) . ', "<bang>", <q-args>)'

@@ -1,13 +1,11 @@
 # heroku.vim
 
-A Vim plugin for interacting with Heroku.  Yes really.  Provided is a `:Heroku`
-command that wraps both the [Heroku CLI][] and the (sadly deprecated) [hk][],
-with some pretty wicked tab complete for the latter.  Plus it adds a command
-wrapper for each Heroku remote in your Git config, so `:Staging console` is
-only a few keystrokes away.
+A Vim plugin for interacting with Heroku.  Yes really.  Provided is a
+`:Heroku` command that wraps the [Heroku CLI][], featuring some pretty wicked
+tab complete.  Plus it adds a command wrapper for each Heroku remote in your
+Git config, so `:Staging console` is only a few keystrokes away.
 
 [Heroku CLI]: https://devcenter.heroku.com/articles/heroku-cli
-[hk]: https://github.com/heroku/hk
 
 ## Installation
 

@@ -6,11 +6,8 @@ License: Same terms as Vim itself (see |license|)
 
 USAGE                                           *heroku* *:Heroku* *:Hk*
 
-:Heroku [args]          Run hk or heroku with the given [args] using
-                        |:Dispatch| (or |:make| if unavailable).  If both
-                        commands are installed, hk is used for known hk
-                        commands and plugins, and heroku is used for
-                        everything else.  Tab completion is for hk only.
+:Heroku [args]          Run heroku with the given [args] using |:Dispatch| (or
+                        |:make| if unavailable).
 
 :Heroku run [args]      Identical to :Heroku above, but uses |:Start| (or |:!|
 :Heroku console [args]  if unavailable).
