@@ -11,6 +11,8 @@ USAGE                                           *heroku* *:Heroku* *:Hk*
 
 :Heroku run [args]      Identical to :Heroku above, but uses |:Start| (or |:!|
 :Heroku console [args]  if unavailable).
+:Heroku pg:psql [args]
+:Heroku local [args]
 
 When editing a file in a Git repository, every Heroku remote from that
 repository is camel cased and turned into a :Heroku command wrapper that
