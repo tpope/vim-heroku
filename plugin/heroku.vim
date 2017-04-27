@@ -45,7 +45,7 @@ function! s:prepare(args, app) abort
   let args = a:args
   let name = matchstr(args, '\a\S*')
   let command = s:command(name)
-  if !empty(name) && empty(s:extract_app(args)) &&
+  if !empty(a:app) && !empty(name) && empty(s:extract_app(args)) &&
         \ (get(command, 'needsApp') || get(command, 'wantsApp', 1))
     let args = substitute(args, '\S\@<=\S\@!', ' -a '.a:app, '')
   endif
