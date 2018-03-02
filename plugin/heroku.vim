@@ -262,6 +262,52 @@ function! s:Detect(git_dir) abort
   endfor
 endfunction
 
+function! Heroku_db_canonicalize(url) abort
+  if a:url !~# '^heroku:[[:alnum:]-]*\%(#[[:alnum:]_]*\)\=$'
+    throw 'DB: Invalid Heroku app '.string(a:url)
+  endif
+  let app = matchstr(a:url, ':\zs[^#]*')
+  let cmd = 'heroku config:get '.(empty(app) ? '' : '-a '.app.' ')
+  let var = matchstr(a:url, '#\zs.*')
+  let var = empty(var) ? 'DATABASE_URL' : var
+  if !executable('heroku')
+    throw 'DB: No heroku command'
+  endif
+  let out = get(split(system(cmd.var), "\n"), 0)
+  if empty(out)
+    let out = get(split(system(cmd.var.'_URL'), "\n"), 0)
+  endif
+  if out =~# '^[A-Z_]\+$'
+    let out = get(split(system(cmd.out), "\n"), 0)
+  endif
+  if !empty(out) && !v:shell_error && out =~# '^\w\+:' && out !~# '^heroku:'
+    return out
+  endif
+  throw v:shell_error ? 'DB: '.out : 'DB: could not find database URL for Heroku app'
+endfunction
+
+function! Heroku_db_complete_opaque(url) abort
+  if executable('heroku')
+    return filter(map(split(system('heroku apps -A'), "\n"),
+          \ 'matchstr(v:val, "^\\w\\S*")'), 'len(v:val)')
+  endif
+  return ''
+endfunction
+
+function! Heroku_db_complete_fragment(url, ...) abort
+  let app = matchstr(a:url, ':\zs[^#]*')
+  if executable('heroku')
+    let env = split(system('heroku config' . (empty(app) ? '' : ' -a '.app)), "\n")
+    if !v:shell_error
+      let filter = '^\w\+:\s*\%([A-Z][A-Z0-9_]*_URL$\|[a-z0-9-+.]\+://\)'
+      return map(filter(env, 'v:val =~# filter'), 'matchstr(v:val, "^.\\{-\\}\\ze\\%(_URL\\)\\=:")')
+    endif
+  endif
+  return ''
+endfunction
+
+let g:db_adapter_heroku = 'Heroku_db_'
+
 function! s:ProjectionistDetect() abort
   let root = expand('~/.heroku/plugins/')
   let file = get(g:, 'projectionist_file', get(b:, 'projectionist_file', ''))
