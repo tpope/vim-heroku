@@ -22,17 +22,8 @@ You technically don't need [dispatch.vim][] or [fugitive.vim][], but they help
 heroku.vim with asynchronous command execution and Git repository detection,
 respectively.
 
-You might also like [heroku-remote][], to set up all the different remotes for
-your app in one go with `heroku remote:setup`, and [heroku-binstubs][], to
-create individual scripts that parallel the commands provided by heroku.vim.
-
-    heroku plugins:install https://github.com/tpope/heroku-remote.git
-    heroku plugins:install https://github.com/tpope/heroku-binstubs.git
-
 [dispatch.vim]: https://github.com/tpope/vim-dispatch
 [fugitive.vim]: https://github.com/tpope/vim-fugitive
-[heroku-remote]: https://github.com/tpope/heroku-remote
-[heroku-binstubs]: https://github.com/tpope/heroku-binstubs
 
 ## License
 
