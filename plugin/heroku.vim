@@ -273,9 +273,9 @@ function! Heroku_db_canonicalize(url) abort
   if !executable('heroku')
     throw 'DB: No heroku command'
   endif
-  let out = get(split(system(cmd.var), "\n"), 0)
+  let out = get(split(system(cmd.var), "\n"), -1)
   if empty(out)
-    let out = get(split(system(cmd.var.'_URL'), "\n"), 0)
+    let out = get(split(system(cmd.var.'_URL'), "\n"), -1)
   endif
   if out =~# '^[A-Z_]\+$'
     let out = get(split(system(cmd.out), "\n"), 0)
