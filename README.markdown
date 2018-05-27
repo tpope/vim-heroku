@@ -9,17 +9,16 @@ Git config, so `:Staging console` is only a few keystrokes away.
 
 ## Installation
 
-If you don't have a preferred installation method, I recommend
-installing [pathogen.vim](https://github.com/tpope/vim-pathogen), and
-then simply copy and paste:
+Install using your favorite package manager, or use Vim's built-in package
+support:
 
-    cd ~/.vim/bundle
-    git clone git://github.com/tpope/vim-heroku.git
-    git clone git://github.com/tpope/vim-dispatch.git
-    git clone git://github.com/tpope/vim-fugitive.git
+    mkdir -p ~/.vim/pack/tpope/start
+    cd ~/.vim/pack/tpope/start
+    git clone https://tpope.io/vim/heroku.git
+    vim -u NONE -c "helptags heroku/doc" -c q
 
-You technically don't need [dispatch.vim][] or [fugitive.vim][], but they help
-heroku.vim with asynchronous command execution and Git repository detection,
+You may also want to install [dispatch.vim][] and [fugitive.vim][] for
+asynchronous command execution and better Git repository detection,
 respectively.
 
 [dispatch.vim]: https://github.com/tpope/vim-dispatch
