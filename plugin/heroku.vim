@@ -94,8 +94,8 @@ unlet! s:commands
 function! s:commands() abort
   if !exists('s:commands')
     let s:commands = {}
-    for command in s:heroku_json('commands', {'commands': []}).commands
-      let name = substitute(get(command, 'topic', '').':'.get(command, 'command', ''), ':$', '', '')
+    for command in s:heroku_json('commands', [])
+      let name = get(command, 'id', '')
       if !empty(name)
         let s:commands[name] = command
       endif
