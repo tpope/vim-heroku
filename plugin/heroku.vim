@@ -52,7 +52,8 @@ function! s:prepare(args, app) abort
   let name = matchstr(args, '\a\S*')
   let command = s:command(name)
   if !empty(a:app) && !empty(name) && empty(s:extract_app(args)) &&
-        \ (get(command, 'needsApp') || get(command, 'wantsApp', 1))
+        \ (type(get(command, 'flags')) != type({}) ||
+        \ has_key(command.flags, 'app'))
     let args = substitute(args, '\S\@<=\S\@!', ' -a '.a:app, '')
   endif
   return args
@@ -94,15 +95,25 @@ unlet! s:commands
 function! s:commands() abort
   if !exists('s:commands')
     let s:commands = {}
-    for command in s:heroku_json('commands', {'commands': []}).commands
-      let name = substitute(get(command, 'topic', '').':'.get(command, 'command', ''), ':$', '', '')
-      if !empty(name)
-        let s:commands[name] = command
+    try
+      let list = s:heroku_json('commands', [])
+      for command in type(list) == type({}) ? get(list, 'commands', []) : list
+        let id = get(command, 'id', substitute(get(command, 'topic', '').':'.get(command, 'command', ''), ':$', '', ''))
+        if !empty(id)
+          let s:commands[id] = command
+        endif
+        for alias in get(command, 'aliases', [])
+          let s:commands[alias] = command
+        endfor
+      endfor
+      if !has_key(s:commands, 'local')
+        let s:commands['local'] = get(s:commands, 'local:start', {})
       endif
-    endfor
-    if !has_key(s:commands, 'local')
-      let s:commands['local'] = get(s:commands, 'local:start', {})
-    endif
+    catch
+      if &verbose
+        echomsg "Could not determine Heroku commands"
+      endif
+    endtry
     lockvar s:commands
   endif
   return s:commands
@@ -186,34 +197,23 @@ function! s:complete_command(cmd, app, A, L, P) abort
     return []
   endif
   let flags = {}
-  if type(get(command, 'flags')) ==# type([])
-    for flag in command.flags
-      let desc = flag.hasValue ? flag.name : ''
-      if !empty(flag.char)
+  if type(get(command, 'flags')) ==# type({})
+    for flag in values(command.flags)
+      let desc = flag.type ==# 'boolean' ? '' : flag.name
+      let flags['--'.flag.name] = desc
+      if !empty(get(flag, 'char', ''))
         let flags['-'.flag.char] = desc
       endif
-      if !empty(flag.name)
-        let flags['--'.flag.name] = desc
-      endif
     endfor
-    if command.needsApp || command.wantsApp
-      let flags['-a'] = 'app'
-      let flags['--app'] = 'app'
-      let flags['-r'] = 'remote'
-      let flags['--remote'] = 'remote'
-    endif
   endif
   if !empty(get(flags, opt))
     return s:completion_for(flags[opt], a:app, a:A)
   endif
   let options = []
-  if type(get(command, 'args')) ==# type([])
-    let args = map(copy(command.args), 'v:val.name')
-  else
-    let args = split(tr(command.usage, '[]A-Z', '  a-z', 'g'), '\s\+')[1:-1]
-  endif
-  for arg in args
-    let options += s:completion_for(arg, a:app, a:A)
+  for arg in type(get(command, 'args')) ==# type([]) ? command.args : []
+    if type(get(arg, 'name')) == type('')
+      let options += s:completion_for(arg.name, a:app, a:A)
+    endif
   endfor
   return options + sort(keys(flags))
 endfunction
