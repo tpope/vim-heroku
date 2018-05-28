@@ -9,7 +9,7 @@ let g:loaded_heroku = 1
 
 function! s:heroku_json(args, default) abort
   if !executable('heroku')
-    return default
+    return a:default
   endif
   let output = system('heroku '.a:args.' --json')
   let string = matchstr(output, '[[{].*')
