@@ -180,7 +180,7 @@ function! s:completion_for(type, app, arg) abort
 endfunction
 
 function! s:complete_command(cmd, app, A, L, P) abort
-  let opt = matchstr(strpart(a:L, 0, a:P), ' \zs\%(-[a-z]\|--[[:alnum:]-]+[ =]\@=\)\ze\%(=\|\s*\)\S*$')
+  let opt = matchstr(strpart(a:L, 0, a:P), ' \zs\%(-[a-z]\|--[[:alnum:]-]\+[ =]\@=\)\ze\%(=\|\s*\)\S*$')
   let command = s:command(a:cmd)
   if empty(command)
     return []
