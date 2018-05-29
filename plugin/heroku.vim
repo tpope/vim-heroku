@@ -70,7 +70,7 @@ function! s:dispatch(dir, app, bang, args) abort
   let [mp, efm, cc] = [&l:mp, &l:efm, get(b:, 'current_compiler', '')]
   try
     let args = s:prepare(a:args, a:app)
-    if a:args =~# '^\v\s*%(%(run\s+)?console|%(pg:)?psql|local%(:start)?)>:@!' && substitute(a:args, '-- .*', '', '') !~# ' -d\>'
+    if a:args =~# '^\v\s*%(run|console|%(pg:)?psql|local%(:start)?)>:@!' && substitute(a:args, '-- .*', '', '') !~# ' -d\>'
       execute cd fnameescape(a:dir)
       let title = empty(a:app) ? 'heroku' : a:app
       let title .= ' '.matchstr(a:args, '^\s*\%(run\s\+\)\=\%(-a\s\+\S\+\s\+\)\=\zs\S\+')
