@@ -233,7 +233,7 @@ function! CompilerComplete_heroku(A, L, P, ...) abort
   let cmd = matchstr(strpart(a:L, 0, a:P), '[! ]\zs\(\S\+\)\ze\s\+')
   if !empty(cmd) && cmd !=# 'help'
     let results = s:complete_command(cmd, app, a:A, a:L, a:P)
-    if !empty(s:complete_app)
+    if !empty(app)
       call filter(results, 'v:val !~# "^-\\%([ar]\\|-app\\|-remote\\)$"')
     endif
     return s:completion_filter(results, a:A)
