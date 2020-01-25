@@ -242,6 +242,9 @@ function! CompilerComplete_heroku(A, L, P, ...) abort
 endfunction
 
 function! s:Detect(git_dir) abort
+  if empty(a:git_dir)
+    return
+  endif
   let b:heroku_remotes = {}
   if filereadable(a:git_dir.'/config')
     for line in readfile(a:git_dir.'/config')
@@ -311,10 +314,13 @@ let g:db_adapter_heroku = 'Heroku_db_'
 augroup heroku
   autocmd!
   autocmd BufNewFile,BufReadPost *
-        \ if !exists('g:loaded_fugitive') |
+        \ if exists('*FugitiveCommonDir') && exists('*FugitiveConfigGetRegexp') |
+        \   call s:Detect(FugitiveCommonDir(+expand('<abuf>'))) |
+        \ elseif exists('*FugitiveExtractGitDir') |
+        \   call s:Detect(FugitiveExtractGitDir(expand('<afile>:p'))) |
+        \ else |
         \   call s:Detect(finddir('.git', '.;')) |
         \ endif
-  autocmd User Fugitive call s:Detect(b:git_dir)
 augroup END
 
 command! -bar -bang -nargs=? -complete=custom,CompilerComplete_heroku
