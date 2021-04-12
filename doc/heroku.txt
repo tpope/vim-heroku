@@ -20,6 +20,4 @@ passes the appropriate app argument.  For example, if you have a remote named
 staging pointed at git@heroku.com:myapp-staging.git, calling :Staging restart
 is equivalent to calling :Heroku restart -a myapp-staging.
 
-Also included is basic projectionist.vim support for legacy Ruby CLI plugins.
-
  vim:tw=78:et:ft=help:norl:

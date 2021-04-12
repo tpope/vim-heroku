@@ -308,27 +308,6 @@ endfunction
 
 let g:db_adapter_heroku = 'Heroku_db_'
 
-function! s:ProjectionistDetect() abort
-  let root = expand('~/.heroku/plugins/')
-  let file = get(g:, 'projectionist_file', get(b:, 'projectionist_file', ''))
-  if strpart(file, 0, len(root)) ==# root
-    call projectionist#append(root . matchstr(file, '[^/]\+', len(root)), {
-          \ "*": {"path": ["lib"]},
-          \ "lib/heroku/command/*.rb": {"command": "command", "template": [
-          \   "#",
-          \   "class Heroku::Command::{capitalize|camelcase} < Heroku::Command::Base",
-          \   "",
-          \   "  # {hyphenate}",
-          \   "  #",
-          \   "  #",
-          \   "  def index",
-          \   "  end",
-          \   "",
-          \   "end"
-          \ ]}})
-  endif
-endfunction
-
 augroup heroku
   autocmd!
   autocmd BufNewFile,BufReadPost *
@@ -336,7 +315,6 @@ augroup heroku
         \   call s:Detect(finddir('.git', '.;')) |
         \ endif
   autocmd User Fugitive call s:Detect(b:git_dir)
-  autocmd User ProjectionistDetect call s:ProjectionistDetect()
 augroup END
 
 command! -bar -bang -nargs=? -complete=custom,CompilerComplete_heroku
